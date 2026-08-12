@@ -18,7 +18,7 @@
         @if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
         <form method="post" action="{{ route('login.store') }}">@csrf
             <div class="mb-3"><label class="form-label">Email address</label><input type="email" class="form-control" name="email" value="{{ old('email','admin@bizledger.local') }}" required autofocus></div>
-            <div class="mb-3"><label class="form-label">Password</label><input type="password" class="form-control" name="password" value="ChangeMe123!" required></div>
+            <div class="mb-3"><label class="form-label">Password</label><input type="password" class="form-control" name="password" autocomplete="current-password" required></div>
             <div class="mb-3 form-check"><input class="form-check-input" type="checkbox" name="remember" value="1" id="remember"><label class="form-check-label" for="remember">Keep me signed in</label></div>
             <button class="btn btn-primary w-100">Sign in</button>
         </form>
