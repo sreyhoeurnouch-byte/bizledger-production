@@ -20,13 +20,13 @@
         @endforeach
     @endif
     <div class="toolbar-actions">
-        <button class="toolbar-action" type="button" data-export-table title="Download the visible table rows as CSV"><i class="fa-solid fa-file-csv" aria-hidden="true"></i>Export</button>
-        <button class="toolbar-action" type="button" data-print-page title="Print this page"><i class="fa-solid fa-print" aria-hidden="true"></i>Print</button>
-        <button class="toolbar-action" type="button" data-table-density title="Toggle compact table rows"><i class="fa-solid fa-list" aria-hidden="true"></i>Compact view</button>
-        @if($importUrl && auth()->user()->role !== 'viewer')<button class="toolbar-action" type="button" data-bs-toggle="modal" data-bs-target="#csvImportModal"><i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i>{{ $importLabel }}</button>@endif
         @if($createLabel && auth()->user()->role !== 'viewer')
             @if($createUrl)<a class="toolbar-action" href="{{ $createUrl }}"><i class="fa-solid fa-circle-plus" aria-hidden="true"></i>{{ $createLabel }}</a>
             @else<button type="button" class="toolbar-action" data-bs-toggle="modal" data-bs-target="#recordModal"><i class="fa-solid fa-circle-plus" aria-hidden="true"></i>{{ $createLabel }}</button>@endif
         @endif
+        <button class="toolbar-action" type="button" data-export-table title="Download the visible table rows as CSV"><i class="fa-solid fa-file-csv" aria-hidden="true"></i>Export</button>
+        <button class="toolbar-action" type="button" data-print-page title="Print this page"><i class="fa-solid fa-print" aria-hidden="true"></i>Print</button>
+        <button class="toolbar-action" type="button" data-table-density title="Toggle compact table rows"><i class="fa-solid fa-list" aria-hidden="true"></i>Compact view</button>
+        @if($importUrl && auth()->user()->role !== 'viewer')<button class="toolbar-action" type="button" data-bs-toggle="modal" data-bs-target="#csvImportModal"><i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i>{{ $importLabel }}</button>@endif
     </div>
 </div>
