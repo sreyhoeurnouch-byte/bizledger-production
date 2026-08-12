@@ -1,0 +1,1 @@
+@props(['value'])@php($class=in_array($value,['active','approved','received','posted','healthy'])?'success':(in_array($value,['draft','partially_received','low'])?'warning':'secondary'))<span class="badge text-bg-{{ $class }}">{{ str($value)->replace('_',' ')->title() }}</span>
