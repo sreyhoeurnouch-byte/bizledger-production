@@ -6,7 +6,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::table('stock_movements', function (Blueprint $table) {
@@ -47,7 +48,9 @@ return new class extends Migration {
 
         foreach (DB::table('items')->where('item_type', 'stock')->where('quantity', '>', 0)->orderBy('id')->cursor() as $item) {
             $warehouseId = DB::table('warehouses')->where('company_id', $item->company_id)->where('active', true)->orderBy('code')->value('id');
-            if (! $warehouseId) continue;
+            if (! $warehouseId) {
+                continue;
+            }
             DB::table('inventory_balances')->insert([
                 'id' => (string) Str::uuid(), 'company_id' => $item->company_id, 'warehouse_id' => $warehouseId, 'item_id' => $item->id,
                 'quantity' => $item->quantity, 'average_cost' => $item->cost, 'created_at' => now(), 'updated_at' => now(),

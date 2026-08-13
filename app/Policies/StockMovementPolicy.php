@@ -2,7 +2,8 @@
 
 namespace App\Policies;
 
-use App\Models\{StockMovement, User};
+use App\Models\StockMovement;
+use App\Models\User;
 
 class StockMovementPolicy
 {

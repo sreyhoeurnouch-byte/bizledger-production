@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Inventory\PostStockMovement;
-use App\Models\{Item, StockMovement, Warehouse};
+use App\Models\Item;
+use App\Models\StockMovement;
+use App\Models\Warehouse;
 use App\Support\AuditsLedger;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -17,6 +19,7 @@ class StockMovementController extends Controller
     public function index(Request $request)
     {
         $companyId = $request->user()->company_id;
+
         return view('stock.index', [
             'movements' => StockMovement::with(['item', 'warehouse', 'destinationWarehouse', 'inventoryTransactions', 'reversal'])->whereCompanyId($companyId)->when($request->filled('q'), fn ($query) => $query->where(fn ($search) => $search->where('number', 'like', '%'.$request->q.'%')->orWhere('reference', 'like', '%'.$request->q.'%')->orWhereHas('item', fn ($item) => $item->where('sku', 'like', '%'.$request->q.'%')->orWhere('name', 'like', '%'.$request->q.'%'))))->latest('movement_date')->paginate(20)->withQueryString(),
             'items' => Item::whereCompanyId($companyId)->whereActive(true)->where('item_type', 'stock')->orderBy('name')->get(),
@@ -58,6 +61,7 @@ class StockMovementController extends Controller
     private function validated(Request $request): array
     {
         $companyId = $request->user()->company_id;
+
         return $request->validate([
             'number' => ['required', 'max:40', Rule::unique('stock_movements')->where(fn ($query) => $query->where('company_id', $companyId))],
             'movement_date' => ['required', 'date', 'before_or_equal:today'], 'kind' => ['required', Rule::in(['receipt', 'issue', 'adjustment', 'transfer'])],

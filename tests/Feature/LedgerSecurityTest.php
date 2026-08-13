@@ -2,7 +2,15 @@
 
 namespace Tests\Feature;
 
-use App\Models\{Company, Contact, InventoryBalance, InventoryTransaction, Item, PurchaseOrder, StockMovement, User, Warehouse};
+use App\Models\Company;
+use App\Models\Contact;
+use App\Models\InventoryBalance;
+use App\Models\InventoryTransaction;
+use App\Models\Item;
+use App\Models\PurchaseOrder;
+use App\Models\StockMovement;
+use App\Models\User;
+use App\Models\Warehouse;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
