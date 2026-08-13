@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Inventory\PostStockMovement;
-use App\Models\{Item, ItemGroup, Warehouse};
+use App\Models\Item;
+use App\Models\ItemGroup;
+use App\Models\Warehouse;
 use App\Support\AuditsLedger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -58,6 +60,10 @@ class ItemController extends Controller
         });
         $this->audit('created', $item, ['sku' => $item->sku, 'item_type' => $item->item_type]);
 
+        if ($request->input('action') === 'save_new') {
+            return redirect()->route('items.create')->with('success', 'Item created successfully.');
+        }
+
         return redirect()->route('items.index')->with('success', 'Item created successfully.');
     }
 
@@ -65,6 +71,7 @@ class ItemController extends Controller
     {
         $item = $this->item($request, $item);
         $this->authorize('update', $item);
+
         return view('items.edit', ['item' => $item, 'groups' => $this->groups($request), 'hasPostedMovements' => $item->stockMovements()->wherePosted(true)->exists()]);
     }
 
@@ -96,13 +103,24 @@ class ItemController extends Controller
         $header = fgetcsv($handle);
         $columns = array_map(fn ($value) => strtolower(trim((string) $value)), $header ?: []);
         $required = ['sku', 'name', 'unit', 'cost', 'sale_price'];
-        if (array_diff($required, $columns)) return back()->withErrors(['file' => 'CSV must include: '.implode(', ', $required).'.']);
+        if (array_diff($required, $columns)) {
+            return back()->withErrors(['file' => 'CSV must include: '.implode(', ', $required).'.']);
+        }
 
-        $rows = []; $errors = []; $seenSkus = []; $line = 1; $companyId = $request->user()->company_id;
+        $rows = [];
+        $errors = [];
+        $seenSkus = [];
+        $line = 1;
+        $companyId = $request->user()->company_id;
         while (($values = fgetcsv($handle)) !== false) {
             $line++;
-            if (!array_filter($values, fn ($value) => trim((string) $value) !== '')) continue;
-            if (count($rows) >= 250) { $errors[] = 'A CSV import is limited to 250 items.'; break; }
+            if (! array_filter($values, fn ($value) => trim((string) $value) !== '')) {
+                continue;
+            }
+            if (count($rows) >= 250) {
+                $errors[] = 'A CSV import is limited to 250 items.';
+                break;
+            }
             $source = array_combine($columns, array_pad($values, count($columns), null));
             $row = [
                 'sku' => trim((string) ($source['sku'] ?? '')), 'name' => trim((string) ($source['name'] ?? '')),
@@ -111,19 +129,39 @@ class ItemController extends Controller
                 'item_type' => in_array($source['item_type'] ?? 'stock', ['stock', 'service'], true) ? ($source['item_type'] ?? 'stock') : 'invalid',
             ];
             $validator = Validator::make($row, ['sku' => ['required', 'string', 'max:64'], 'name' => ['required', 'string', 'max:180'], 'unit' => ['required', 'string', 'max:32'], 'cost' => ['required', 'numeric', 'min:0'], 'sale_price' => ['required', 'numeric', 'min:0'], 'barcode' => ['nullable', 'string', 'max:80'], 'item_type' => ['required', Rule::in(['stock', 'service'])]]);
-            if ($validator->fails()) { $errors[] = "Row {$line}: ".implode(' ', $validator->errors()->all()); continue; }
-            if (isset($seenSkus[$row['sku']]) || Item::whereCompanyId($companyId)->where('sku', $row['sku'])->exists()) { $errors[] = "Row {$line}: SKU {$row['sku']} already exists."; continue; }
-            if ($row['barcode'] && Item::whereCompanyId($companyId)->where('barcode', $row['barcode'])->exists()) { $errors[] = "Row {$line}: barcode {$row['barcode']} already exists."; continue; }
-            $seenSkus[$row['sku']] = true; $rows[] = $row;
+            if ($validator->fails()) {
+                $errors[] = "Row {$line}: ".implode(' ', $validator->errors()->all());
+
+                continue;
+            }
+            if (isset($seenSkus[$row['sku']]) || Item::whereCompanyId($companyId)->where('sku', $row['sku'])->exists()) {
+                $errors[] = "Row {$line}: SKU {$row['sku']} already exists.";
+
+                continue;
+            }
+            if ($row['barcode'] && Item::whereCompanyId($companyId)->where('barcode', $row['barcode'])->exists()) {
+                $errors[] = "Row {$line}: barcode {$row['barcode']} already exists.";
+
+                continue;
+            }
+            $seenSkus[$row['sku']] = true;
+            $rows[] = $row;
         }
         fclose($handle);
-        if ($errors) return back()->withErrors(['file' => $errors]);
-        if (!$rows) return back()->withErrors(['file' => 'The CSV contains no importable items.']);
+        if ($errors) {
+            return back()->withErrors(['file' => $errors]);
+        }
+        if (! $rows) {
+            return back()->withErrors(['file' => 'The CSV contains no importable items.']);
+        }
 
         DB::transaction(function () use ($rows, $companyId) {
-            foreach ($rows as $row) Item::create($row + ['company_id' => $companyId, 'quantity' => 0, 'reorder_level' => 0, 'active' => true, 'for_purchase' => true, 'for_sale' => true]);
+            foreach ($rows as $row) {
+                Item::create($row + ['company_id' => $companyId, 'quantity' => 0, 'reorder_level' => 0, 'active' => true, 'for_purchase' => true, 'for_sale' => true]);
+            }
         });
         $this->audit('imported', new Item, ['count' => count($rows)]);
+
         return redirect()->route('items.index')->with('success', count($rows).' items imported successfully. Opening stock remains zero; post a receipt to add inventory.');
     }
 
@@ -133,7 +171,10 @@ class ItemController extends Controller
         $companyId = $request->user()->company_id;
         $skuRule = Rule::unique('items')->where(fn ($query) => $query->where('company_id', $companyId));
         $barcodeRule = Rule::unique('items')->where(fn ($query) => $query->where('company_id', $companyId));
-        if ($item) { $skuRule->ignore($item->id); $barcodeRule->ignore($item->id); }
+        if ($item) {
+            $skuRule->ignore($item->id);
+            $barcodeRule->ignore($item->id);
+        }
 
         $data = $request->validate([
             'sku' => ['required', 'string', 'max:64', $skuRule], 'name' => ['required', 'string', 'max:180'],
@@ -148,17 +189,34 @@ class ItemController extends Controller
         $data['for_purchase'] = $request->boolean('for_purchase');
         $data['for_sale'] = $request->boolean('for_sale');
         $data['active'] = $request->boolean('active', true);
-        if ($item) $data['quantity'] = $item->quantity;
+        if ($item) {
+            $data['quantity'] = $item->quantity;
+        }
 
         $errors = [];
-        if (! $data['for_purchase'] && ! $data['for_sale']) $errors['for_purchase'] = 'An item must be enabled for purchase, sale, or both.';
-        if ($data['item_type'] === 'service' && ((float) $data['quantity'] !== 0.0 || (float) $data['reorder_level'] !== 0.0)) $errors['item_type'] = 'Service items cannot carry quantity or reorder levels.';
-        if ($hasPostedMovements && ($data['item_type'] !== $item->item_type || $data['sku'] !== $item->sku)) $errors['sku'] = 'SKU and item type are locked after stock has been posted.';
-        if ($errors) throw ValidationException::withMessages($errors);
+        if (! $data['for_purchase'] && ! $data['for_sale']) {
+            $errors['for_purchase'] = 'An item must be enabled for purchase, sale, or both.';
+        }
+        if ($data['item_type'] === 'service' && ((float) $data['quantity'] !== 0.0 || (float) $data['reorder_level'] !== 0.0)) {
+            $errors['item_type'] = 'Service items cannot carry quantity or reorder levels.';
+        }
+        if ($hasPostedMovements && ($data['item_type'] !== $item->item_type || $data['sku'] !== $item->sku)) {
+            $errors['sku'] = 'SKU and item type are locked after stock has been posted.';
+        }
+        if ($errors) {
+            throw ValidationException::withMessages($errors);
+        }
 
         return $data + ['company_id' => $companyId];
     }
 
-    private function item(Request $request, string $id): Item { return Item::whereCompanyId($request->user()->company_id)->findOrFail($id); }
-    private function groups(Request $request) { return ItemGroup::whereCompanyId($request->user()->company_id)->orderBy('name')->get(); }
+    private function item(Request $request, string $id): Item
+    {
+        return Item::whereCompanyId($request->user()->company_id)->findOrFail($id);
+    }
+
+    private function groups(Request $request)
+    {
+        return ItemGroup::whereCompanyId($request->user()->company_id)->orderBy('name')->get();
+    }
 }

@@ -2,7 +2,8 @@
 
 namespace App\Policies;
 
-use App\Models\{Item, User};
+use App\Models\Item;
+use App\Models\User;
 
 class ItemPolicy
 {

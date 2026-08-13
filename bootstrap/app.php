@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Middleware\EnsureLedgerApprovalAccess;
+use App\Http\Middleware\EnsureLedgerWriteAccess;
+use App\Http\Middleware\IdleSessionTimeout;
+use App\Http\Middleware\ThrottleWriteOperations;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -12,7 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->alias(['ledger.write' => \App\Http\Middleware\EnsureLedgerWriteAccess::class, 'ledger.approve' => \App\Http\Middleware\EnsureLedgerApprovalAccess::class]);
+        $middleware->alias(['ledger.write' => EnsureLedgerWriteAccess::class, 'ledger.approve' => EnsureLedgerApprovalAccess::class, 'throttle.writes' => ThrottleWriteOperations::class, 'idle.timeout' => IdleSessionTimeout::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

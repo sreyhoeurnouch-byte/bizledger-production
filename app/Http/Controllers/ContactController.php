@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\{Contact, PurchaseOrder};
+use App\Models\Contact;
+use App\Models\Invoice;
+use App\Models\PurchaseOrder;
+use App\Models\SalesOrder;
 use App\Support\AuditsLedger;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -11,16 +14,55 @@ class ContactController extends Controller
 {
     use AuditsLedger;
 
-    public function vendors(Request $request) { return $this->index($request, 'vendor'); }
-    public function customers(Request $request) { return $this->index($request, 'customer'); }
-    public function storeVendor(Request $request) { return $this->store($request, 'vendor'); }
-    public function storeCustomer(Request $request) { return $this->store($request, 'customer'); }
-    public function showVendor(Request $request, string $contact) { return $this->show($request, $contact, 'vendor'); }
-    public function showCustomer(Request $request, string $contact) { return $this->show($request, $contact, 'customer'); }
-    public function editVendor(Request $request, string $contact) { return $this->edit($request, $contact, 'vendor'); }
-    public function editCustomer(Request $request, string $contact) { return $this->edit($request, $contact, 'customer'); }
-    public function updateVendor(Request $request, string $contact) { return $this->update($request, $contact, 'vendor'); }
-    public function updateCustomer(Request $request, string $contact) { return $this->update($request, $contact, 'customer'); }
+    public function vendors(Request $request)
+    {
+        return $this->index($request, 'vendor');
+    }
+
+    public function customers(Request $request)
+    {
+        return $this->index($request, 'customer');
+    }
+
+    public function storeVendor(Request $request)
+    {
+        return $this->store($request, 'vendor');
+    }
+
+    public function storeCustomer(Request $request)
+    {
+        return $this->store($request, 'customer');
+    }
+
+    public function showVendor(Request $request, string $contact)
+    {
+        return $this->show($request, $contact, 'vendor');
+    }
+
+    public function showCustomer(Request $request, string $contact)
+    {
+        return $this->show($request, $contact, 'customer');
+    }
+
+    public function editVendor(Request $request, string $contact)
+    {
+        return $this->edit($request, $contact, 'vendor');
+    }
+
+    public function editCustomer(Request $request, string $contact)
+    {
+        return $this->edit($request, $contact, 'customer');
+    }
+
+    public function updateVendor(Request $request, string $contact)
+    {
+        return $this->update($request, $contact, 'vendor');
+    }
+
+    public function updateCustomer(Request $request, string $contact)
+    {
+        return $this->update($request, $contact, 'customer');
+    }
 
     private function index(Request $request, string $kind)
     {
@@ -37,9 +79,12 @@ class ContactController extends Controller
         $contact = $this->contact($request, $id, $kind);
         $orders = $kind === 'vendor'
             ? PurchaseOrder::whereCompanyId($request->user()->company_id)->where('vendor_id', $contact->id)->latest('order_date')->paginate(15)
+            : SalesOrder::whereCompanyId($request->user()->company_id)->where('customer_id', $contact->id)->latest('order_date')->paginate(15);
+        $invoices = $kind === 'customer'
+            ? Invoice::whereCompanyId($request->user()->company_id)->where('customer_id', $contact->id)->with('allocations')->latest('invoice_date')->get()
             : collect();
 
-        return view('contacts.show', compact('kind', 'contact', 'orders'));
+        return view('contacts.show', compact('kind', 'contact', 'orders', 'invoices'));
     }
 
     private function edit(Request $request, string $id, string $kind)
@@ -68,7 +113,9 @@ class ContactController extends Controller
     {
         $companyId = $request->user()->company_id;
         $codeRule = Rule::unique('contacts')->where(fn ($query) => $query->where('company_id', $companyId));
-        if ($contact) $codeRule->ignore($contact->id);
+        if ($contact) {
+            $codeRule->ignore($contact->id);
+        }
 
         return $request->validate([
             'code' => ['required', 'string', 'max:32', $codeRule], 'name' => ['required', 'string', 'max:180'],

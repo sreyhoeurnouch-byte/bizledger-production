@@ -22,6 +22,7 @@
             <div class="mb-3 form-check"><input class="form-check-input" type="checkbox" name="remember" value="1" id="remember"><label class="form-check-label" for="remember">Keep me signed in</label></div>
             <button class="btn btn-primary w-100">Sign in</button>
         </form>
+        <div class="text-center mt-3"><a href="{{ route('password.request') }}">Forgot your password?</a></div>
     </div></div>
 </main>
 </body>

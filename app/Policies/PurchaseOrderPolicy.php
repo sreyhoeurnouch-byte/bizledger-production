@@ -2,7 +2,8 @@
 
 namespace App\Policies;
 
-use App\Models\{PurchaseOrder, User};
+use App\Models\PurchaseOrder;
+use App\Models\User;
 
 class PurchaseOrderPolicy
 {

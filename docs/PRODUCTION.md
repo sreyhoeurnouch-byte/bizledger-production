@@ -43,8 +43,10 @@ Configure a scheduled task to execute `php artisan schedule:run` every minute wh
 - Monitor failed jobs, application errors, disk usage, and backup failures.
 - Keep at least one `owner` account under a controlled company email address.
 - Give day-to-day users the lowest suitable role. `viewer` accounts cannot submit ledger writes.
-- Audit events are recorded for item, contact, purchase-order, stock-movement, and account creation or change.
+- Audit events are recorded for item, contact, purchase-order, sales, stock-movement, account, sign-in, sign-out, and password-reset activity.
+- Configure a transactional SMTP provider (`MAIL_MAILER=smtp`, host, port, credentials, and a verified sender) before exposing password reset. The default `log` mailer is intentionally non-delivering for local development only.
+- Demo seeding is blocked when `APP_ENV=production`; deploy production data through controlled onboarding instead.
 
 ## Scope before financial go-live
 
-This release provides inventory, contact, purchase-order, chart-of-account, and stock-movement foundations. It is not a jurisdiction-complete statutory accounting system yet. Before relying on it for books of record, define and implement the required tax rules, journal posting, approvals, period close/reopen controls, document numbering, reconciliation, exports, data-retention policy, and external accounting review for the operating jurisdiction.
+This release provides inventory, contact, purchasing, sales, receivables, payables, chart-of-account, and stock-movement foundations. It is not a jurisdiction-complete statutory accounting system yet. Before relying on it for books of record, define and implement the required tax rules, journal posting, approvals, period close/reopen controls, document numbering, reconciliation, exports, data-retention policy, and external accounting review for the operating jurisdiction.
